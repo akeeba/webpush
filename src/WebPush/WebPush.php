@@ -26,11 +26,11 @@ declare(strict_types=1);
 namespace Akeeba\WebPush\WebPush;
 
 use Base64Url\Base64Url;
-use Joomla\CMS\Filesystem\Streams\StreamString;
 use Joomla\CMS\Http\Http as HttpClient;
 use Joomla\CMS\Http\HttpFactory;
+use Joomla\CMS\Uri\Uri;
 use Laminas\Diactoros\Request;
-use Psr\Http\Message\ResponseInterface;
+use Laminas\Diactoros\StreamFactory;
 use function count;
 
 /**
@@ -182,9 +182,46 @@ class WebPush
 			{
 				try
 				{
-					$response = $this->client->sendRequest($request);
+					// So, this SHOULD work but it doesn't, because of a Joomla Framework bug. HARD MODE ENGAGED.
+					//$response = $this->client->sendRequest($request);
+
+					$httpMethod = strtolower($request->getMethod());
+
+					$headers = array_map(
+						function ($values)
+						{
+							if (!is_array($values))
+							{
+								return $values;
+							}
+
+							return implode(' ', $values);
+						},
+						$request->getHeaders()
+					);
+
+					$timeout = $this->client->getOption('timeout', 10);
+
+					switch ($httpMethod)
+					{
+						case 'options':
+						case 'head':
+						case 'get':
+						case 'trace':
+						default:
+							$response = $this->client->{$httpMethod}(new Uri($request->getUri()), $headers, $timeout);
+							break;
+
+						case 'post':
+						case 'put':
+						case 'delete':
+						case 'patch':
+						$response = $this->client->{$httpMethod}(new Uri($request->getUri()), $request->getBody()->getContents(), $headers, $timeout);
+							break;
+					}
+
 					$success  = $response->getStatusCode() >= 200 && $response->getStatusCode() < 400;
-					$reason   = $success ? 'OK' : strip_tags($response->body);
+					$reason   = $success ? 'OK' : (strip_tags($response->body) ?: $response->getReasonPhrase());
 
 					yield new MessageSentReport($request, $response, $success, $reason);
 				}
@@ -461,11 +498,9 @@ class WebPush
 				}
 			}
 
-			$filename = 'php://temp/' . sha1(microtime(true) . '#' . $endpoint . '#' . $content . '#' . json_encode($headers)) . '.dat';
-			$fp       = fopen($filename, 'wb+');
-			fputs($fp, $content);
+			$streamFactory = new StreamFactory();
 
-			$requests[] = new Request($endpoint, 'POST', $fp, $headers);
+			$requests[] = new Request($endpoint, 'POST', $streamFactory->createStream($content), $headers);
 		}
 
 		return $requests;
