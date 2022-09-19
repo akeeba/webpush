@@ -1,6 +1,7 @@
 {
   "name": "akeeba/webpush",
   "type": "library",
+  "version": "0.0.1",
   "description": "WebPush for Joomla components",
   "keywords": ["push", "notifications", "web", "WebPush", "Push API", "Joomla"],
   "homepage": "https://github.com/akeeba/webpush",
