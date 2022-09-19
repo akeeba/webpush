@@ -99,7 +99,6 @@ class Encryption
 		];
 
 		// get shared secret from user public key and local private key
-
 		$sharedSecret = Encryption::calculateAgreementKey($localKeyData, $userKeyData);
 
 		$sharedSecret = str_pad($sharedSecret, 32, chr(0), STR_PAD_LEFT);
@@ -179,6 +178,7 @@ class Encryption
 			try
 			{
 				$publicPem  = self::convertPublicKeyToPEM($public_key);
+				$private_key = array_map([Base64Url::class, 'encode'], $private_key);
 				$privatePem = self::convertPrivateKeyToPEM($private_key);
 
 				$result = openssl_pkey_derive($publicPem, $privatePem, 256);
@@ -212,7 +212,14 @@ class Encryption
 	 */
 	private static function convertBase64ToBigInteger(string $value): BigInteger
 	{
-		$value = unpack('H*', Base64Url::decode($value));
+		try
+		{
+			$value = unpack('H*', Base64Url::decode($value));
+		}
+		catch (\Exception $e)
+		{
+			$value = unpack('H*', $value);
+		}
 
 		if ($value === false)
 		{
@@ -329,9 +336,9 @@ class Encryption
 		}
 
 		return [
-			'x' => Base64Url::encode(self::addNullPadding($details['ec']['x'])),
-			'y' => Base64Url::encode(self::addNullPadding($details['ec']['y'])),
-			'd' => Base64Url::encode(self::addNullPadding($details['ec']['d'])),
+			'x' => self::addNullPadding($details['ec']['x']),
+			'y' => self::addNullPadding($details['ec']['y']),
+			'd' => self::addNullPadding($details['ec']['d']),
 		];
 	}
 
@@ -391,7 +398,7 @@ class Encryption
 	/**
 	 * @throws \InvalidArgumentException if the curve is not supported
 	 */
-	private static function convertPublicKeyToPEM(array $keyData): string
+	public static function convertPublicKeyToPEM(array $keyData): string
 	{
 		$der = pack(
 			'H*',
@@ -440,8 +447,8 @@ class Encryption
 			. '00' // prepend with NUL - pubkey will follow
 		);
 		$der .= "\04"
-			. str_pad($keyData['x'], 32, "\0", STR_PAD_LEFT)
-			. str_pad($keyData['y'], 32, "\0", STR_PAD_LEFT);
+			. str_pad(Base64Url::decode($keyData['x']), 32, "\0", STR_PAD_LEFT)
+			. str_pad(Base64Url::decode($keyData['y']), 32, "\0", STR_PAD_LEFT);
 		$pem = '-----BEGIN EC PRIVATE KEY-----'.PHP_EOL;
 		$pem .= chunk_split(base64_encode($der), 64, PHP_EOL);
 		$pem .= '-----END EC PRIVATE KEY-----'.PHP_EOL;

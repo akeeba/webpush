@@ -5,7 +5,7 @@
  * An abstraction layer for easier implementation of WebPush in Joomla components.
  *
  * @copyright (c) 2022 Akeeba Ltd
- * @license   GNU GPL v3 or later; see LICENSE.txt
+ * @license       GNU GPL v3 or later; see LICENSE.txt
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,22 +93,30 @@ class VAPID
 	 * @param   string    $audience    This must be the origin of the push service
 	 * @param   string    $subject     This should be a URL or a 'mailto:' email address
 	 * @param   string    $publicKey   The decoded VAPID public key
-	 * @param   string    $privateKey  The decoded VAPID private key
+	 * @param   string    $signingKey  The decoded VAPID private key
 	 * @param   null|int  $expiration  The expiration of the VAPID JWT. (UNIX timestamp)
 	 *
 	 * @return array Returns an array with the 'Authorization' and 'Crypto-Key' values to be used as headers
 	 * @throws \ErrorException
 	 */
-	public static function getVapidHeaders(string $audience, string $subject, string $publicKey, string $privateKey, string $contentEncoding, ?int $expiration = null)
+	public static function getVapidHeaders(string $audience, string $subject, string $publicKey, string $signingKey, string $contentEncoding, ?int $expiration = null)
 	{
+		if (!class_exists(\Lcobucci\JWT\Signer\OpenSSL::class, false))
+		{
+			require_once __DIR__ . '/../Workarounds/OpenSSL.php';
+		}
+
 		// Get the full key data from the public and private key
-		$keyData = Utils::unserializePublicKey($publicKey);
-		$keyData[] = $privateKey;
-		$keyData = array_combine(['x', 'y', 'd'], $keyData);
+		$keyData   = Utils::unserializePublicKey($publicKey);
+		$keyData[] = $signingKey;
+		$keyData   = array_combine(['x', 'y', 'd'], $keyData);
+		$keyData   = array_map([Base64Url::class, 'encode'], $keyData);
 
 		// Get an in-memory key (see https://github.com/lcobucci/jwt/blob/3.4.x/docs/configuration.md)
-		$privateKeyPem = Encryption::convertPrivateKeyToPEM($keyData);
-		$key = InMemory::plainText($privateKeyPem);
+		$privateKeyPem   = Encryption::convertPrivateKeyToPEM($keyData);
+		$publicKeyPem    = Encryption::convertPublicKeyToPEM($keyData);
+		$signingKey      = InMemory::plainText($privateKeyPem);
+		$verificationKey = InMemory::plainText($publicKeyPem);
 
 		// Calculate expiration date and time
 		$expirationLimit = time() + 43200; // equal margin of error between 0 and 24h
@@ -118,14 +126,14 @@ class VAPID
 		}
 		// Get current data and time
 		// Get the JWT
-		$configuration = Configuration::forAsymmetricSigner(new Sha256(), $key, $key);
+		$configuration = Configuration::forAsymmetricSigner(new Sha256(), $signingKey, $verificationKey);
 		$token = $configuration->builder()
-			->setAudience($audience)
-			->expiresAt(new DateTimeImmutable($expiration))
-			->setSubject($subject)
-			->issuedAt(new DateTimeImmutable())
-			->getToken($configuration->signer(), $configuration->signingKey());
-		$jwt = $token->toString();
+		                       ->setAudience($audience)
+		                       ->expiresAt(new DateTimeImmutable('@' . $expiration))
+		                       ->setSubject($subject)
+		                       ->issuedAt(new DateTimeImmutable())
+		                       ->getToken($configuration->signer(), $configuration->signingKey());
+		$jwt           = $token->toString();
 
 		// Get the authorisation headers
 		$encodedPublicKey = Base64Url::encode($publicKey);
@@ -233,9 +241,9 @@ class VAPID
 		}
 
 		return [
-			'd'   => $details['ec']['d'],
-			'x'   => $details['ec']['x'],
-			'y'   => $details['ec']['y'],
+			'd' => $details['ec']['d'],
+			'x' => $details['ec']['x'],
+			'y' => $details['ec']['y'],
 		];
 	}
 

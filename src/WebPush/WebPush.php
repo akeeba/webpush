@@ -5,7 +5,7 @@
  * An abstraction layer for easier implementation of WebPush in Joomla components.
  *
  * @copyright (c) 2022 Akeeba Ltd
- * @license   GNU GPL v3 or later; see LICENSE.txt
+ * @license       GNU GPL v3 or later; see LICENSE.txt
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,9 +26,10 @@ declare(strict_types=1);
 namespace Akeeba\WebPush\WebPush;
 
 use Base64Url\Base64Url;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Psr7\Request;
+use Joomla\CMS\Filesystem\Streams\StreamString;
+use Joomla\CMS\Http\Http as HttpClient;
+use Joomla\CMS\Http\HttpFactory;
+use Laminas\Diactoros\Request;
 use Psr\Http\Message\ResponseInterface;
 use function count;
 
@@ -64,7 +65,7 @@ class WebPush
 	protected $automaticPadding = Encryption::MAX_COMPATIBILITY_PAYLOAD_LENGTH;
 
 	/**
-	 * @var Client
+	 * @var HttpClient
 	 */
 	protected $client;
 
@@ -135,7 +136,8 @@ class WebPush
 		{
 			$clientOptions['timeout'] = $timeout;
 		}
-		$this->client = new Client($clientOptions);
+
+		$this->client = HttpFactory::getHttp($clientOptions);
 	}
 
 	public function countPendingNotifications(): int
@@ -176,33 +178,20 @@ class WebPush
 			// for each endpoint server type
 			$requests = $this->prepare($batch);
 
-			$promises = [];
-
 			foreach ($requests as $request)
 			{
-				$promises[] = $this->client->sendAsync($request)
-				                           ->then(function ($response) use ($request) {
-					                           /** @var ResponseInterface $response * */
-					                           return new MessageSentReport($request, $response);
-				                           })
-				                           ->otherwise(function ($reason) {
-					                           /** @var RequestException $reason * */
-					                           if (method_exists($reason, 'getResponse'))
-					                           {
-						                           $response = $reason->getResponse();
-					                           }
-					                           else
-					                           {
-						                           $response = null;
-					                           }
+				try
+				{
+					$response = $this->client->sendRequest($request);
+					$success  = $response->getStatusCode() >= 200 && $response->getStatusCode() < 400;
+					$reason   = $success ? 'OK' : strip_tags($response->body);
 
-					                           return new MessageSentReport($reason->getRequest(), $response, false, $reason->getMessage());
-				                           });
-			}
-
-			foreach ($promises as $promise)
-			{
-				yield $promise->wait();
+					yield new MessageSentReport($request, $response, $success, $reason);
+				}
+				catch (\Exception $e)
+				{
+					yield new MessageSentReport($request, $response, false, $e->getMessage());
+				}
 			}
 		}
 
@@ -379,7 +368,9 @@ class WebPush
 	}
 
 	/**
+	 * @return Request[]
 	 * @throws \ErrorException
+	 *
 	 */
 	protected function prepare(array $notifications): array
 	{
@@ -470,7 +461,11 @@ class WebPush
 				}
 			}
 
-			$requests[] = new Request('POST', $endpoint, $headers, $content);
+			$filename = 'php://temp/' . sha1(microtime(true) . '#' . $endpoint . '#' . $content . '#' . json_encode($headers)) . '.dat';
+			$fp       = fopen($filename, 'wb+');
+			fputs($fp, $content);
+
+			$requests[] = new Request($endpoint, 'POST', $fp, $headers);
 		}
 
 		return $requests;
