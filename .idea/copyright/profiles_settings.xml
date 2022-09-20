@@ -2,6 +2,7 @@
   <settings>
     <module2copyright>
       <element module="All PHP files" copyright="Akeeba" />
+      <element module="Documentation code sample" copyright="Akeeba" />
     </module2copyright>
     <LanguageOptions name="PHP">
       <option name="fileTypeOverride" value="3" />
