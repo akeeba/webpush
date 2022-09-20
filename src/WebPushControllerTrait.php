@@ -55,7 +55,51 @@ trait WebPushControllerTrait
 			$json  = $this->input->post->getRaw('subscription', '{}');
 			$model = $this->getModel();
 
-			$model->webPushSaveSubscription($this->input->get('option'), $json);
+			$model->webPushSaveSubscription($json);
+
+			if (method_exists($this, 'onAfterWebPushSaveSubscription'))
+			{
+				$this->onAfterWebPushSaveSubscription(json_decode($json));
+			}
+		}
+		catch (\Throwable $e)
+		{
+			$ret['success'] = false;
+			$ret['error'] = $e->getMessage();
+		}
+
+		@ob_end_clean();
+
+		header('Content-Type: application/json');
+		echo json_encode($ret);
+
+		$this->app->close();
+	}
+
+	/**
+	 * Remove the Web Push user subscription object from the database.
+	 *
+	 * @return  void
+	 * @since   1.0.0
+	 */
+	public function webpushunsubscribe(): void
+	{
+		$ret = [
+			'success' => true,
+			'error'   => null,
+		];
+
+		try
+		{
+			if (!$this->checkToken('post', false))
+			{
+				throw new \RuntimeException(Text::_('JINVALID_TOKEN_NOTICE'));
+			}
+
+			$json  = $this->input->post->getRaw('subscription', '{}');
+			$model = $this->getModel();
+
+			$model->webPushRemoveSubscription($json);
 		}
 		catch (\Throwable $e)
 		{

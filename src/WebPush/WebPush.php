@@ -182,7 +182,7 @@ class WebPush
 			{
 				try
 				{
-					// So, this SHOULD work but it doesn't, because of a Joomla Framework bug. HARD MODE ENGAGED.
+					// So, this SHOULD work, but it doesn't because of a Joomla Framework bug. HARD MODE ENGAGED.
 					//$response = $this->client->sendRequest($request);
 
 					$httpMethod = strtolower($request->getMethod());
