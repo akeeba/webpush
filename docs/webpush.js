@@ -252,6 +252,17 @@
 						}
 
 						window.dispatchEvent(myEvent);
+					})
+					.catch((err) => {
+						if (navigator.appVersion.includes('Safari')) {
+							console.error('[Web Push] Safari does not yet support Web Push (even if it is enabled as an experimental feature)');
+
+							this.disableInterface();
+
+							return;
+						}
+
+						console.error('[Web Push] Cannot get push subscription status: ' + err.message);
 					});
 			}
 
