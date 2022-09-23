@@ -46,7 +46,7 @@ use Joomla\Utilities\ArrayHelper;
  * @property bool        $requireInteraction Should the notification remain on screen until dismissed?
  * @property bool        $silent             When set indicates that no sounds or vibrations should be made.
  * @property string|null $tag                A tag to group related notifications.
- * @property int|null    $timestamp          UNIX timestamp of the date and time applicable to a notification.
+ * @property int|null    $timestamp          UNIX timestamp IN MILLISECONDS of the date and time applicable to a notification.
  * @property array|null  $vibrate            A vibration pattern to run with the display of the notification.
  */
 class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
@@ -179,7 +179,7 @@ class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
 	private $tag = null;
 
 	/**
-	 * UNIX timestamp of the date and time applicable to a notification.
+	 * UNIX timestamp IN MILLISECONDS of the date and time applicable to a notification.
 	 *
 	 * Represents the time when the notification was created. It can be used to indicate the time at which a
 	 * notification is actual. For example, this could be in the past when a notification is used for a message that
