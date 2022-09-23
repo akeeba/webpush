@@ -64,13 +64,10 @@
 			 */
 			disableInterface()
 			{
-				disableInterface()
-				{
-					const elMessage = document.querySelector(this.options?.unavailableInfo ?? 'noSuchElement');
+				const elMessage = document.querySelector(this.options?.unavailableInfo ?? 'noSuchElement');
 
-					elMessage.classList.remove('d-none');
-					elMessage.style.display = '';
-				}
+				elMessage.classList.remove('d-none');
+				elMessage.style.display = '';
 			}
 
 			/**
