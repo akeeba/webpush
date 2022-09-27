@@ -75,7 +75,7 @@ trait WebPushModelTrait
 	 * @return  array{publicKey: string, privateKey: string}
 	 * @since   1.0.0
 	 */
-	public function getVapidKeys(): array
+	public function getVapidKeys(): ?array
 	{
 		if (is_array(self::$vapidKeys[$this->webPushOption] ?? null))
 		{
@@ -104,7 +104,14 @@ trait WebPushModelTrait
 			return self::$vapidKeys[$this->webPushOption];
 		}
 
-		self::$vapidKeys[$this->webPushOption] = $this->getNewVapidKeys();
+		try
+		{
+			self::$vapidKeys[$this->webPushOption] = $this->getNewVapidKeys();
+		}
+		catch (\ErrorException $e)
+		{
+			return null;
+		}
 
 		return self::$vapidKeys[$this->webPushOption];
 	}
@@ -214,7 +221,7 @@ trait WebPushModelTrait
 
 		// Get the WebPush object
 		$vapidKeys = $this->getVapidKeys();
-		$auth      = [
+		$auth      = ($vapidKeys === null) ? [] : [
 			'VAPID' => [
 				'subject'    => Uri::root(),
 				'publicKey'  => $vapidKeys['publicKey'],
