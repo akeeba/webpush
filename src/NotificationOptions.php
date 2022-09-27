@@ -239,6 +239,7 @@ class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
 	 *
 	 * @since   1.0.0
 	 */
+	#[\ReturnTypeWillChange]
 	public function __isset($name)
 	{
 		return $this->offsetExists($name);
@@ -251,6 +252,7 @@ class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
 	 *
 	 * @since   1.0.0
 	 */
+	#[\ReturnTypeWillChange]
 	public function __toString()
 	{
 		return json_encode($this);
@@ -265,6 +267,7 @@ class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
 	 * @return  int  The custom count as an integer.
 	 * @since   1.0.0
 	 */
+	#[\ReturnTypeWillChange]
 	public function count()
 	{
 		return count($this->toArray());
@@ -276,6 +279,7 @@ class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
 	 * @return  mixed Data which can be serialized by <b>json_encode</b>.
 	 * @since   1.0.0
 	 */
+	#[\ReturnTypeWillChange]
 	public function jsonSerialize()
 	{
 		return $this->toArray();
@@ -289,6 +293,7 @@ class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
 	 * @return  bool True on success
 	 * @since   1.0.0
 	 */
+	#[\ReturnTypeWillChange]
 	public function offsetExists($offset)
 	{
 		return property_exists($this, $offset);
@@ -302,6 +307,7 @@ class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
 	 * @return  mixed
 	 * @since   1.0.0
 	 */
+	#[\ReturnTypeWillChange]
 	public function offsetGet($offset)
 	{
 		if (!$this->offsetExists($offset))
@@ -327,6 +333,7 @@ class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
 	 * @return  void
 	 * @since   1.0.0
 	 */
+	#[\ReturnTypeWillChange]
 	public function offsetSet($offset, $value)
 	{
 		switch ($offset)
@@ -391,6 +398,7 @@ class NotificationOptions implements \JsonSerializable, \ArrayAccess, \Countable
 	 * @throws  \BadMethodCallException
 	 * @since   1.0.0
 	 */
+	#[\ReturnTypeWillChange]
 	public function offsetUnset($offset)
 	{
 		throw new \BadFunctionCallException(
